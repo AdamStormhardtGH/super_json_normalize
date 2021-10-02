@@ -1,13 +1,29 @@
 """Main module."""
 
 import json
-import copy
+from logging import error
+
+
+import super_json_normalize
 
 
 def load_json(json_path):
     """safely load json file from location"""
     with open(json_path,"r") as jsf:
         return json.load(jsf)
+
+def write_json(data, file_name, json_path=".", append=False):
+    """
+    safely write to a json file
+    """
+    if append:
+        write_mode = "wa"
+    else:
+        write_mode = "w"
+
+    with open(f"{json_path}/{file_name}.json", write_mode) as jsf:
+        json.dump(data, jsf)
+
 
 def merge_two_dicts(dict_01, dict_02):
     """ for python 3.4 or lower """
@@ -78,8 +94,29 @@ def flatten_array(array_key, array_contents, delimeter="_"):
 #     for each_entry in input_array:
 #         normalize_layer(each_entry)
 
-def normalize_layer(input_object, parent_name="default_name"):
-    """ scans the first layer of the json, flagging arrays """
+def normalize_record(input_object, parent_name="default_name"):
+    """ 
+    This function orchestrates the main normalization. 
+    It will go through the json document and recursively work with the data to:
+    - unnest (flatten/normalize) keys in objects with the standard <parentkey>_<itemkey> convention
+    - identify arrays, which will be pulled out and normalized
+    - create an array of entities, ready for streaming or export 
+    
+        for each item in the object:
+        if the item is a non object or non list item: 
+        append to this flattened_dict object
+        if the item is a dictionary: 
+        trigger the flatten dict function
+        the flatten dict function will iterate through the items and append them to a dictionary. it will return a dictionary with {"dictionary": <dict_data>, "array": <arrays>}
+            join flattened_dict and the returned[dictionary] data
+            append returned[array] to arrays layer
+        
+        arrays will be dealt with a little differently. Because we're expecting multiple entries we'll be workign with a loop which will always belong to an array
+        create new dict object dict_object = {"name": <dict name>, "data": [dict array entries data]}
+        for each in the array loop - trigger normalize_layer with parent name of array name
+        dict_object.append the `dicts_array`["data"] to the dict_object["data"] array
+    
+    """
 
     arrays = []
     dicts = [] #only ever returns dicts
@@ -90,19 +127,7 @@ def normalize_layer(input_object, parent_name="default_name"):
     output_array = []
     # flattened_dictionary = {}
     
-    #for each item in the object:
-    # if the item is a non object or non list item: 
-    # append to this flattened_dict object
-    # if the item is a dictionary: 
-    # trigger the flatten dict function
-    # the flatten dict function will iterate through the items and append them to a dictionary. it will return a dictionary with {"dictionary": <dict_data>, "array": <arrays>}
-        # join flattened_dict and the returned[dictionary] data
-        # append returned[array] to arrays layer
     
-    #arrays will be dealt with a little differently. Because we're expecting multiple entries we'll be workign with a loop which will always belong to an array
-    # create new dict object dict_object = {"name": <dict name>, "data": [dict array entries data]}
-    # for each in the array loop - trigger normalize_layer with parent name of array name
-    # dict_object.append the `dicts_array`["data"] to the dict_object["data"] array
 
     if isinstance(input_object, (dict)):
         for key, value in input_object.items():
@@ -128,17 +153,11 @@ def normalize_layer(input_object, parent_name="default_name"):
     elif isinstance(input_object, (list)):
         output_array.append({"name":parent_name,"data":input_object})
 
-    
-    print("Now we deal with Arrays:")
-    
-        # print(arrays)
 
-        # flattened_array = []
+
     for each_array in arrays:
-        array_instance = [] #because we're expecting 1+ entries we need to add to an array then pull it together
-        print(each_array)
         for each_entry in each_array["data"]:
-            normalized_array = (normalize_layer(input_object = each_entry, parent_name = each_array["name"]) ) 
+            normalized_array = (normalize_record(input_object = each_entry, parent_name = each_array["name"]) ) 
             #expect list here
             #let the normalizer recursively work through and pull the data out. Once it's out, we can append the data to the dicts array :)
             #may return 1 or more dictionaries
@@ -154,47 +173,30 @@ def normalize_layer(input_object, parent_name="default_name"):
                         each_dictionary_entity["data"].extend(each_normalized_array_entry["data"])
                         matches = True
                 if matches == False:
-                    # print(f"instance of processing: {each_normalized_array_entry}\n\n")
-                    print("found no match! adding new table entry")
                     dicts.append({"name": each_normalized_array_entry["name"] , "data": each_normalized_array_entry["data"] })
 
-            # if isinstance(each_array,list):
-            #     for each_permutation in each_array:
-            #         print(f"Permutation of array {each_permutation}")
-            #         flattened_array.append(merge_two_dicts(each_permutation,flattend_dict)  )
-            # else:
-            #     flattened_array.append(merge_two_dicts(each_array,flattend_dict)  )
-
-        # output_arrays = []
-
-        # dict_name = parent_name 
-        # layer_flattened_dict = {}
-        # for key, value in input_object.items():
-        #     if isinstance(value, dict):
-        #         #if dictionary, we want to normalize the contents
-        #         #run this normalize function recursively
-        #         # flattend_dict = merge_two_dicts(flattend_dict,flatten_object(key,value))
-        #         dict_contents = normalize(input_object = value, parent_name=key)
-        #     elif isinstance(value, list):
-        #         pass
-        #     else:
-        #         layer_flattened_dict[f"{parent_name}_{key}"] = value
-        # dict_object_for_
-        # output_arrays.append()
-    
+          
     dicts.append({"name":parent_name, "data": [output_dictionary]})
         
     return(dicts)
 
-my_json = {"hello":"sailor", "my":{"name":"wife"}, "arrayhere":[ {"contents01": {"more":"something", "more2":"somethingmre"}, "contents02":"else" },{"hey":"00","contents02":"else"} ]}
+
+def export_records(normalized_records, path="./export_data", format="json"):
+    """
+    Will save out the records into the specified path in the format 
+    """
+    if not isinstance(normalized_records, list):
+        raise error("No records to export - normalized records are not a list type. Something has gone wrong with the generation, or the generation has not happened yet")
+    else:
+        for eachrecord in normalized_records:
+            write_json(eachrecord["data"],eachrecord["name"],json_path=path)
 
 
-# start again
 
-print(json.dumps(normalize_layer(my_json), indent=2 ))
+my_sample_data = load_json("samples/property_data/property_data.json")
 
-# print(json.dumps(flatten_object("boobs",my_json), indent=2 ) )
+my_output_data = normalize_record(my_sample_data)
 
-#pass to flatten and split - taking name of doc
-# returns arrays only ["dict_name":{<data>}]
+print(json.dumps(my_output_data, indent=2))
 
+export_records(my_output_data)
