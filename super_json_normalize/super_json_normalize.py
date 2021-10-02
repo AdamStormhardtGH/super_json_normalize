@@ -24,10 +24,27 @@ def write_json(data, file_name, json_path=".", append=False):
     with open(f"{json_path}/{file_name}.json", write_mode) as jsf:
         json.dump(data, jsf)
 
+def write_jsonl(data, file_name, json_path=".", append=False):
+    """
+    safely write to a json file in line delimited json format
+    """
+    if append:
+        write_mode = "wa"
+    else:
+        write_mode = "w"
+
+    jsonl_contents = ""
+    for each_entry in data:
+        jsonl_contents = jsonl_contents + "\n" + json.dumps(each_entry)
+
+    with open(f"{json_path}/{file_name}.jsonl", write_mode) as jsf:
+        jsf.write(jsonl_contents)
+
+
 
 def merge_two_dicts(dict_01, dict_02):
     """ for python 3.4 or lower """
-    print(f"merging {dict_01} and {dict_02}")
+    # print(f"merging {dict_01} and {dict_02}")
     merged_dict = dict_01.copy()   # start with x's keys and values
     merged_dict.update(dict_02)    # modifies z with y's keys and values & returns None
     return merged_dict
@@ -77,24 +94,34 @@ def flatten_object(object_key,object_contents, delimeter="_"):
     #TODO: should remember the json_path imo
     return {"dictionary": output_dictionary, "array": output_array}
 
-def flatten_array(array_key, array_contents, delimeter="_"):
-    """ will flaten arrays """
-    output_array = []
-    for each_item in array_contents:
-        if isinstance(each_item, dict):
-            print(each_item)
-            output_array.append(flatten_object(array_key,each_item) )
-        #not supporting non object data in arrays for now
-    return output_array
+# def flatten_array(array_key, array_contents, delimeter="_"):
+#     """ will flaten arrays """
+#     output_array = []
+#     for each_item in array_contents:
+#         if isinstance(each_item, dict):
+#             print(each_item)
+#             output_array.append(flatten_object(array_key,each_item) )
+#         #not supporting non object data in arrays for now
+#     return output_array
 
-# def process_arrays(input_array):
-#     """
-#     Process the contents of an array. This mostly just cleans up the normalize_layer function
-#     """
-#     for each_entry in input_array:
-#         normalize_layer(each_entry)
+def extract_parent_keys(dictionary_name, dictionary_object,list_of_ids_to_include=["id"]):
+    """
+    returns a list of ids from an object which match a list of strings
+    This is a simple implementation which needs to be improved upon, but should cover the basics of joins
+    """
+    items_to_return = {}
+    if not isinstance(dictionary_object, dict):
+        return {}
+    else:
+        for each_dict_item in dictionary_object.keys():
+            #look through each item in the dict. We need to look to see if our keywords are in these keys and return the keys as a dict we can insert 
+            for each_flagged_item in list_of_ids_to_include:
+                if str(each_flagged_item).lower() in str(each_dict_item).lower():
+                    dict_item = {f"{dictionary_name}_{each_dict_item}": dictionary_object[each_dict_item] }
+                    items_to_return = merge_two_dicts(items_to_return,dict_item)
+    return items_to_return
 
-def normalize_record(input_object, parent_name="default_name"):
+def normalize_record(input_object, parent_name="root_entity"):
     """ 
     This function orchestrates the main normalization. 
     It will go through the json document and recursively work with the data to:
@@ -119,15 +146,10 @@ def normalize_record(input_object, parent_name="default_name"):
     """
 
     arrays = []
-    dicts = [] #only ever returns dicts
-    # flattend_dict = {}
-
-
+    dicts = []
     output_dictionary = {}
-    output_array = []
-    # flattened_dictionary = {}
-    
-    
+
+    parent_keys = extract_parent_keys(dictionary_name=parent_name, dictionary_object=input_object)
 
     if isinstance(input_object, (dict)):
         for key, value in input_object.items():
@@ -144,19 +166,29 @@ def normalize_record(input_object, parent_name="default_name"):
                 instance_array = dict_contents["array"]
 
                 if len(instance_array) >0:
-                    output_array.extend(instance_array)
+                    arrays.extend(instance_array)
                 output_dictionary = merge_two_dicts(output_dictionary,instance_dictionary) #join the dict
                 
             elif isinstance(value, list):
-                arrays.append({"name":key, "data":value})
+                arrays.append({"name":key, "data":value, "parent_keys": parent_keys})
 
     elif isinstance(input_object, (list)):
-        output_array.append({"name":parent_name,"data":input_object})
+        arrays.append({"name":parent_name,"data":input_object })
 
-
+    ##############################
+    ### Now process the arrays ###
+    ##############################
+    
 
     for each_array in arrays:
         for each_entry in each_array["data"]:
+            each_entry = each_entry
+            try:
+                if each_array["parent_keys"]:
+                    each_entry = merge_two_dicts(each_entry, each_array["parent_keys"])
+            except:
+                pass
+
             normalized_array = (normalize_record(input_object = each_entry, parent_name = each_array["name"]) ) 
             #expect list here
             #let the normalizer recursively work through and pull the data out. Once it's out, we can append the data to the dicts array :)
@@ -184,19 +216,27 @@ def normalize_record(input_object, parent_name="default_name"):
 def export_records(normalized_records, path="./export_data", format="json"):
     """
     Will save out the records into the specified path in the format 
+    formats:
+    - "json" standard json format. outputs as array
+    - "jsonl" line delimited json. Each row is an object. This is used in spark etc and big data
+    - "csv" 
     """
     if not isinstance(normalized_records, list):
         raise error("No records to export - normalized records are not a list type. Something has gone wrong with the generation, or the generation has not happened yet")
     else:
         for eachrecord in normalized_records:
-            write_json(eachrecord["data"],eachrecord["name"],json_path=path)
-
+                if format == "json":
+                    write_json(eachrecord["data"],eachrecord["name"],json_path=path)
+                elif format == "jsonl":
+                    write_jsonl(eachrecord["data"],eachrecord["name"],json_path=path)
+            
+                
 
 
 my_sample_data = load_json("samples/property_data/property_data.json")
 
 my_output_data = normalize_record(my_sample_data)
 
-print(json.dumps(my_output_data, indent=2))
+# print(json.dumps(my_output_data, indent=2))
 
-export_records(my_output_data)
+export_records(my_output_data, format="jsonl")
