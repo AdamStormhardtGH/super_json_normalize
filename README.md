@@ -1,26 +1,25 @@
-=====================================
+
 Super Json Normalize (with Array Ultra)
 =====================================
 
+<p align="center">
 
-.. image:: https://img.shields.io/pypi/v/super_json_normalize.svg
-        :target: https://pypi.python.org/pypi/super_json_normalize
+<a href="https://pypi.python.org/pypi/super_json_normalize" alt="Pip Logo">
+        <img src="https://img.shields.io/pypi/v/super_json_normalize.svg" /></a>
 
-.. image:: https://img.shields.io/travis/AdamRuddGH/super_json_normalize.svg
-        :target: https://travis-ci.com/AdamRuddGH/super_json_normalize
+<a href="https://travis-ci.com/AdamRuddGH/super_json_normalize" alt="Github">
+        <img src="https://img.shields.io/travis/AdamRuddGH/super_json_normalize.svg" /></a>
 
-.. image:: https://readthedocs.org/projects/super-json-normalize/badge/?version=latest
-        :target: https://super-json-normalize.readthedocs.io/en/latest/?version=latest
-        :alt: Documentation Status
+<a href="https://super-json-normalize.readthedocs.io/en/latest/?version=latest" alt="Documentation Status">
+        <img src="https://readthedocs.org/projects/super-json-normalize/badge/?version=latest" /></a>
 
-
-.. image:: https://pyup.io/repos/github/AdamRuddGH/super_json_normalize/shield.svg
-     :target: https://pyup.io/repos/github/AdamRuddGH/super_json_normalize/
-     :alt: Updates
-
-
+<a href="https://pyup.io/repos/github/AdamRuddGH/super_json_normalize/" alt="Updates">
+        <img src="https://pyup.io/repos/github/AdamRuddGH/super_json_normalize/shield.svg" /></a>
 
 A generic, unlimited level json normalizer which handles arrays at any location. Outputs a normalised set of data which can be imported into a relational table
+</p>
+
+
 
 ## Why do I need this?
 
