@@ -3,31 +3,55 @@
 import json
 from logging import error
 
+def clean_path(directory_path) -> str:
+    """
+    Will ensure the path supplied DOES end with / so we can join to a filename without worry
+    """
+    
 
-import super_json_normalize
+    if str(directory_path):
+        if directory_path[-1:] != "/":
+            directory_path = directory_path + "/"
+    return directory_path
 
 
 def load_json(json_path):
-    """safely load json file from location"""
+    """
+    Safely load json file from a path location
+    eg. open("./json_files/my_json_file.json")
+    """
+
     with open(json_path,"r") as jsf:
         return json.load(jsf)
 
-def write_json(data, file_name, json_path=".", append=False):
+def write_json(data, file_name, file_path=".", append=False):
     """
-    safely write to a json file
+    Safely write to a json file in a path
+    - data = the dictionary data you want to write
+    - file_name = the file name you indend to write to
+    - file_path = the path you want to write to
+    - append = add to the file 
     """
+    
+    
     if append:
         write_mode = "wa"
     else:
         write_mode = "w"
 
-    with open(f"{json_path}/{file_name}.json", write_mode) as jsf:
+    clean_file_path = clean_path(file_path) #clean the path
+
+    with open(f"{clean_file_path}{file_name}.json", write_mode) as jsf:
         json.dump(data, jsf)
 
-def write_jsonl(data, file_name, json_path=".", append=False):
+
+
+def write_jsonl(data, file_name, file_path=".", append=False):
     """
     safely write to a json file in line delimited json format
     """
+
+
     if append:
         write_mode = "wa"
     else:
@@ -37,14 +61,19 @@ def write_jsonl(data, file_name, json_path=".", append=False):
     for each_entry in data:
         jsonl_contents = jsonl_contents + "\n" + json.dumps(each_entry)
 
-    with open(f"{json_path}/{file_name}.jsonl", write_mode) as jsf:
+    clean_file_path = clean_path(file_path) #clean the path
+
+    with open(f"{clean_file_path}{file_name}.jsonl", write_mode) as jsf:
         jsf.write(jsonl_contents)
 
 
 
 def merge_two_dicts(dict_01, dict_02):
-    """ for python 3.4 or lower """
-    # print(f"merging {dict_01} and {dict_02}")
+    """ 
+    Merge 2 dictionaries and return the merged dictionary. 
+    Compatible with python 3.4 or lower
+    """
+    
     merged_dict = dict_01.copy()   # start with x's keys and values
     merged_dict.update(dict_02)    # modifies z with y's keys and values & returns None
     return merged_dict
@@ -61,6 +90,8 @@ def flatten_object(object_key,object_contents, delimeter="_"):
 
     returns: {"dictionary": {<dict_data>}, "array": [{<array key>:<array value},{<array key>:<array value}] }
     """
+
+
     output_dictionary = {}
     output_array = []
     flattened_dictionary = {}
@@ -94,21 +125,14 @@ def flatten_object(object_key,object_contents, delimeter="_"):
     #TODO: should remember the json_path imo
     return {"dictionary": output_dictionary, "array": output_array}
 
-# def flatten_array(array_key, array_contents, delimeter="_"):
-#     """ will flaten arrays """
-#     output_array = []
-#     for each_item in array_contents:
-#         if isinstance(each_item, dict):
-#             print(each_item)
-#             output_array.append(flatten_object(array_key,each_item) )
-#         #not supporting non object data in arrays for now
-#     return output_array
 
 def extract_parent_keys(dictionary_name, dictionary_object,list_of_ids_to_include=["id"]):
     """
-    returns a list of ids from an object which match a list of strings
+    Returns a list of ids from an object which match a list of strings
     This is a simple implementation which needs to be improved upon, but should cover the basics of joins
     """
+
+
     items_to_return = {}
     if not isinstance(dictionary_object, dict):
         return {}
@@ -144,6 +168,7 @@ def normalize_record(input_object, parent_name="root_entity"):
         dict_object.append the `dicts_array`["data"] to the dict_object["data"] array
     
     """
+
 
     arrays = []
     dicts = []
@@ -219,24 +244,29 @@ def export_records(normalized_records, path="./export_data", format="json"):
     formats:
     - "json" standard json format. outputs as array
     - "jsonl" line delimited json. Each row is an object. This is used in spark etc and big data
-    - "csv" 
+    TODO: CSV / TSV
     """
+
+
     if not isinstance(normalized_records, list):
         raise error("No records to export - normalized records are not a list type. Something has gone wrong with the generation, or the generation has not happened yet")
     else:
         for eachrecord in normalized_records:
                 if format == "json":
-                    write_json(eachrecord["data"],eachrecord["name"],json_path=path)
+                    write_json(eachrecord["data"],eachrecord["name"],file_path=path)
                 elif format == "jsonl":
-                    write_jsonl(eachrecord["data"],eachrecord["name"],json_path=path)
+                    write_jsonl(eachrecord["data"],eachrecord["name"],file_path=path)
             
                 
 
 
-my_sample_data = load_json("samples/property_data/property_data.json")
+# my_sample_data = load_json("samples/property_data/property_data.json")
 
-my_output_data = normalize_record(my_sample_data)
+# my_output_data = normalize_record(my_sample_data)
 
-# print(json.dumps(my_output_data, indent=2))
+# # print(json.dumps(my_output_data, indent=2))
 
-export_records(my_output_data, format="jsonl")
+# export_records(my_output_data, format="jsonl")
+
+
+# print(clean_path("hello/") )

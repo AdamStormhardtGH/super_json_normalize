@@ -28,7 +28,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
     ],
-    description="A generic, unlimited level json normalizer which handles arrays at any location. Outputs a normalised set of data which can be imported into a relational table",
+    description="A generic, unlimited level json normalizer which handles arrays at any location. Outputs a normalised set of data which can be imported into a relational table, and pulls in parent keys for joinability",
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
