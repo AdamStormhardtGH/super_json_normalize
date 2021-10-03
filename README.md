@@ -83,63 +83,78 @@ The following will occur when we run `super_json_normalize.normalize_record()` o
 this would end up with:
 ```json
 
-// `properties` entity
-{ 
-        "properties" : [
-                {
-                        "id": "ID001",
-                        "address_street_address": "123 Fake street",
-                        "address_suburb": "Fakeland",
-                        "address_state": "VIC",
-                        "address_country": "Australia"
-                }
-        ]
-}
 
-// `inspection_times` entity
-{ 
-        "properties_inspection_times": [
-                {
-                        "properties_id": "ID001",
-                        "id": "IID001",
-                        "description":"First inspection date on Sunday"
-                },
-                {
-                        "properties_id": "ID001",
-                        "id": "IID002",
-                        "description":"Second inspection date on Tuesday"
-                },
-                {
-                        "properties_id": "ID001",
-                        "id": "IID003", 
-                        "description":"Final inpection date on Friday"
-                }
-        ]
-}
+[
+   {
+    "name": "properties",                // `properties` entity
+    "data": [
+      {
+        "id": "ID001",                   // primary key
+        "address_street_address": "123 Fake street",
+        "address_suburb": "Fakeland",
+        "address_state": "VIC",
+        "address_country": "Australia"
+      }
+    ]
+  },
+  {
+    "name": "inspection_times",          // `inspection_times` entity
+    "data": [
+      {
+        "id": "IID001",         
+        "description": "First inspection date on Sunday",
+        "properties_id": "ID001"         // parent key (foreign key) inherited from the root 
+      },
+      {
+        "id": "IID002",
+        "description": "Second inspection date on Tuesday",
+        "properties_id": "ID001"         // parent key (foreign key) inherited from the root
+      },
+      {
+        "id": "IID003",
+        "description": "Final inpection date on Friday",
+        "properties_id": "ID001"         // parent key (foreign key) inherited from the root
+      }
+    ]
+  }
+]
 
 ```
+
 
 This is useful for preparing data for a relational db or systems requiring relational data.
 
 
 # usage
 
-example to dump each entity to json from the sample above
+Example to dump each entity to json from the sample above from /samples/
+This one is the `property_data` example:
 
 ```python
-import super_json_normalize as sjn 
+import super_json_normalize
 import json
 
-data = <your dict here eg with 1 array in it>
-my_normalized_data = sjn.normalize(data) #returns list
+#load the data from file
+my_sample_data = super_json_normalize.load_json("./samples/property_data.json")
 
-print(my_normalized_data)
+#now create the entities in a json file
+my_output_data = super_json_normalize.normalize_record(my_sample_data, parent_name="properties")
 
-> [ {"properties": [ <each entry here>]}, {"properties_inspection_times": [ <each entry here>]} ]
+#finally, export the entities in each individual file
+super_json_normalize.export_records(my_normalized_data, path="./export_data/", format="jsonl")
 
-for eachitem in my_normalized_data:
-        with open(f"{eachitem.keys()}.json", "w") as json_file_to_write_to: #use the key of the dictionary as the name
-                json.dump(eachitem, json_file_to_write_to)
+###
+# creates files in ./export_data/ directory 
+# properties.jsonl
+# inspection_times.jsonl
+
+### properties.jsonl
+# {"id": "ID001", "address_street_address": "123 Fake street", "address_suburb": "Fakeland", "address_state": "VIC", "address_country": "Australia"}
+
+### inspection_times.jsonl
+# {"id": "IID001", "description": "First inspection date on Sunday", "properties_id": "ID001"}
+# {"id": "IID002", "description": "Second inspection date on Tuesday", "properties_id": "ID001"}
+# {"id": "IID003", "description": "Final inpection date on Friday", "properties_id": "ID001"}
 
 ```
 

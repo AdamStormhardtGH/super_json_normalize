@@ -1,4 +1,4 @@
 
-{"id": "IID001", "description": "First inspection date on Sunday", "root_entity_id": "ID001"}
-{"id": "IID002", "description": "Second inspection date on Tuesday", "root_entity_id": "ID001"}
-{"id": "IID003", "description": "Final inpection date on Friday", "root_entity_id": "ID001"}
+{"id": "IID001", "description": "First inspection date on Sunday", "properties_id": "ID001"}
+{"id": "IID002", "description": "Second inspection date on Tuesday", "properties_id": "ID001"}
+{"id": "IID003", "description": "Final inpection date on Friday", "properties_id": "ID001"}
