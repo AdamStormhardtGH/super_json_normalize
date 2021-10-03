@@ -262,7 +262,7 @@ def export_records(normalized_records, path="./export_data", format="json"):
 
 # my_sample_data = load_json("samples/property_data/property_data.json")
 
-# my_output_data = normalize_record(my_sample_data)
+# my_output_data = normalize_record(my_sample_data, parent_name="properties")
 
 # # print(json.dumps(my_output_data, indent=2))
 
